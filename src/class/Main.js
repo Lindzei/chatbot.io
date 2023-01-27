@@ -47,18 +47,15 @@ const Main = class Main {
             this.messageManager.addMessage(currentUser, message);
             const messageCurrentUser = this.messageManager.getLastMessage();
             this.retrieveChat(messageCurrentUser);
-        } else {
-            const checkActivator = this.messageAutoManager.getContactByActivator(
-                this.botManager.getContacts(),
-                messageChat
-            );
-            console.log(checkActivator);
-
-            this.messageManager.addMessage(currentUser, messageChat);
-            const messageCurrentUser = this.messageManager.getLastMessage();
-            this.retrieveChat(messageCurrentUser);
-
-            Cookies.setCookie('APP_MESSAGE', this.messageManager.getMessage(), 30);
+            return;
+        }
+        this.messageManager.addMessage(currentUser, messageChat);
+        this.retrieveChat(this.messageManager.getLastMessage());
+        Cookies.setCookie('APP_MESSAGE', this.messageManager.getMessage(), 30);
+        const checkActivator = this.messageAutoManager.getContactByActivator(
+          this.botManager.getContacts(),
+          messageChat
+        );
 
             if (checkActivator.length > 0) {
                 const bots = checkActivator;
@@ -68,7 +65,6 @@ const Main = class Main {
                     const botInfos = bot[1];
                     const botElement = botInfos.trigger[typeObject];
                     const typeRetrieve = botElement.type;
-                    console.log(typeObject);
                     // Si le type est api: alors on effectue une requête à l'API
                     // et on stocke dans response un retour au format JSON
                     if (typeObject === 'api') {
@@ -99,14 +95,12 @@ const Main = class Main {
                         Cookies.setCookie('APP_MESSAGE', this.messageManager.getMessage(), 30);
                     }
                 }
-            }
         }
     }
 
     // Récupère la liste des bots
     retrieveContacts() {
         const contacts = this.botManager.getContacts();
-        console.log(contacts);
         let html = '<div class="col-3"><ul class="list-group "> ';
         contacts.forEach((element) => {
             html += `
@@ -120,35 +114,24 @@ const Main = class Main {
         return html;
     }
 
-    // Permet d'effectuer une commande avec le bouton Envoyer
-    attachClickHandler() {
+    // Nouvelle méthode pour gérer les events
+    // Anciennement j'avais une méthode pour gérer les clics et une autre pour la touche entrée
+    attachEventHandlers() {
         const scope = this;
+        const inputElement = document.getElementById('message');
         document.getElementById('button').onclick = function () {
-            const inputElement = document.getElementById('message');
-            scope.addMessage(inputElement.value);
-            // Remise à 0 du texte dans la frame de texte
+          scope.addMessage(inputElement.value);
+          inputElement.value = '';
+          window.scrollTo(0, document.body.scrollHeight);
+        };
+        inputElement.onkeyup = function (evt) {
+          if (evt.key === 'Enter') {
+            scope.addMessage(evt.target.value);
             inputElement.value = '';
-            console.log(inputElement);
-
             window.scrollTo(0, document.body.scrollHeight);
+          }
         };
-    }
-
-    // Permet d'effectuer une commande avec la touche entrée
-    // Marche aussi avec la touche du pavé numérique
-    attachEnterHandler() {
-        const scope = this;
-        // Récupère l'élément message qui correspond à la barre de texte
-        document.getElementById('message').onkeyup = function (evt) {
-            if (evt.key === 'Enter') {
-                const inputElement = document.getElementById('message');
-                scope.addMessage(evt.target.value);
-                inputElement.value = '';
-                // Remise à 0 du texte dans la frame de texte
-                window.scrollTo(0, document.body.scrollHeight);
-            }
-        };
-    }
+      }
 
     // Récupère l'historique des messages stockés
     retrieveChat(instance) {
@@ -181,24 +164,14 @@ const Main = class Main {
         element[0].appendChild(div);
     }
 
-    // Permet d'appeler une commande de bot
+    // Nouvelle méthode de récupération des commandes
     getCommand(message, type, apiResponse) {
-        let output = '';
-        switch (type) {
-            case 'blood':
-                output = `${message} ${apiResponse.group}`;
-                break;
-            case 'biere':
-                output = `${message} ${apiResponse.name} de la marque ${apiResponse.brand}`;
-                break;
-            case 'roll':
-                output = `${message} ${apiResponse.details} pour un total de ${apiResponse.result}`;
-                break;
-            default:
-                output = '';
-                break;
-        }
-        return output;
+        const commands = {
+            blood: `${message} ${apiResponse.group}`,
+            biere: `${message} ${apiResponse.name} de la marque ${apiResponse.brand}`,
+            roll: `${message} ${apiResponse.details} pour un total de ${apiResponse.result}`
+        };
+        return commands[type] || '';
     }
 };
 
